@@ -39,7 +39,7 @@ MBR代码的地址是**0x7c00-0x7dff**，一共是512B
 
 
 # 测试
-1.进入bochs安装目录，运行**./bochs -f [configurefile],进入模拟器  
+1.进入bochs安装目录，运行**./bochs -f [configurefile]**,进入模拟器  
 2.输入6启动模拟器，并键入c继续，可以看到屏幕上打印出几个字符
 
 
