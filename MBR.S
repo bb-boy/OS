@@ -21,8 +21,8 @@ SECTION MBR vstart=0x7c00
 ;BH = 上卷行属性
 ;(CL,CH) = 窗口左上角的（X,Y)位置
 ;(DL,DH) = 窗口右下角的 (X,Y)位置
-    mov ax,0x0600h
-    mov bx,0x0700h
+    mov ax,0x0600
+    mov bx,0x0700
     mov cx,0
     mov dx,184fh
     int 10h    ;设置参数，并调用中断
@@ -76,13 +76,14 @@ rd_disk_m_16
     out dx,al     ;LBA低八位写入端口0x1f3
 
     mov dx,0x1F4
-    out dx,ah    ;LBA中八位写入端口0x1f4
+    mov cl,8
+    shr eax,cl
+    out dx,al    ;LBA中八位写入端口0x1f4
 
 
     mov dx,0x1F5
-    mov cl,16
     shr eax,cl
-    out dx,al    ;eax右移16位，将低8位写入端口0x1f5中
+    out dx,al    ;eax右移8位，将低8位写入端口0x1f5中
 
 ;设置device寄存器，低四位表示LBA地址的24~27位，第4位表示主盘或从盘，0表示主盘
 ;第6位表示启用LBA模式，第5和7位成为MBS位，都置为1,eax的高4位都为0，device的高4位为1110
