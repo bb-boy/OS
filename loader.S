@@ -24,4 +24,4 @@ section loader vstart = LOADER_BASE_ADDR
     mov byte [gs:0x0e],'R'
     mov byte [gs:0x0f],0xA4
 
-    jump $
+    jmp $
