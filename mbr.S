@@ -54,7 +54,7 @@ SECTION MBR vstart=0x7c00
 
 ;--------------------------------------
 ;读取硬盘n个扇区
-rd_disk_m_16
+rd_disk_m_16:
     mov esi,eax  ;备份LBA扇区号
     mov di,cx   ;备份读入的扇区数
 
