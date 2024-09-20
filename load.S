@@ -32,7 +32,7 @@ SELECTOR_VIDEO equ (0x0003<<3)+T1_GDT+RPL0        ;显存段的索引号是3
 gdt_ptr dw GDT_LIMIT
        dd GDT_BASE    ;声明一个变量变量，用于存放指针和段界限
 
-loadermsg db '2 loader in real',0  ;0用于字符串结束
+loadermsg db '2 loader in real.' ;0用于字符串结束
 ;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
 ;my_byte db 0x12,定义一个字节存储0x12
 
@@ -72,7 +72,7 @@ jmp dword SELECTOR_CODE:p_mode_start       ;跳转指令，用于清空流水线
 
 [bits 32]
 p_mode_start:
-       mov ax SELECTOR_DATA
+       mov ax,SELECTOR_DATA
        mov ds,ax 
        mov es,ax
        mov ss,ax
