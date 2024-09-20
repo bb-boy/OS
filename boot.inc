@@ -66,8 +66,8 @@ RPL0    equ  00b
 RPL1    equ  01b
 RPL2    equ  10b
 RPL3   equ  11b
-T1_GDT          equ     000b  
-T1_LDT          equ     100b  
+TI_GDT          equ     000b  
+TI_LDT          equ     100b  
 
 
 
