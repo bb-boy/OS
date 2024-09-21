@@ -32,7 +32,7 @@ SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0        ;显存段的索引号是3
 gdt_ptr dw GDT_LIMIT
         dd GDT_BASE    ;声明一个变量变量，用于存放指针和段界限
 
-loadermsg db '2 loader in real.' 
+loadermsg db 'I loader in real.' 
 ;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
 ;my_byte db 0x12,定义一个字节存储0x12
 
@@ -80,7 +80,7 @@ p_mode_start:
        mov ax,SELECTOR_VIDEO
        mov gs,ax
 
-       mov byte [gs:160],'P'  ;gs表示内存中的显存段地址，文本显示模式下为25*80，一个字符是两个字节，高字节是属性，低字节是ascii码，
+       mov byte [gs:160],'p'  ;gs表示内存中的显存段地址，文本显示模式下为25*80，一个字符是两个字节，高字节是属性，低字节是ascii码，
        jmp $
 
 
