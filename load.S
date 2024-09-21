@@ -4,7 +4,6 @@ LOADER_STACK_TOP equ LOADER_BASE_ADDR   ;栈顶的位置
 jmp loader_start
 
 ;构建全局描述符表，
-
 GDT_BASE: dd 0x00000000 
           dd 0x00000000    ;gdt的第0个元素为64位全0，方式因为gdtr未初始化造成读错数据
 CODE_DESC: dd 0x0000FFFF
@@ -18,19 +17,16 @@ GDT_SIZE equ $ - GDT_BASE
 GDT_LIMIT equ GDT_SIZE - 1   
 times 60 dq 0                ;define quadword定义四个字，预留60个描述符
 
-
 ;构建选择子，选择子0-1位是特权级，2位是0表示在gdt中索引，为0在ldt中索引，3-15位是gdt中的索引号，选择子存储在段寄存器中，由于段寄存器是16位的，所以选择子也是16位的
 SELECTOR_CODE equ (0x0001<<3) + TI_GDT + RPL0       ;1表示代码段在gdt中的索引号，T1表示在gdt中索引，rpl0表示最高特权级
 SELECTOR_DATA equ (0x0002<<3) + TI_GDT + RPL0        ;数据段的索引号是2
 SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0        ;显存段的索引号是3
-
 
 ;定义gdt的指针，gdt的指针存放在gdtr中，gdtr的高32位是gdt的起始地址，低16位是以字节为单位的gdt的界限，为段的大小减一
 gdt_ptr dw GDT_LIMIT
         dd GDT_BASE    ;声明一个变量变量，用于存放指针和段界限
 loadermsg db 'I am loader in real.'       ;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
 ;my_byte db 0x12,定义一个字节存储0x12
-
 loader_start:
  mov sp,LOADER_BASE_ADDR
  mov bp,loadermsg  ;中存放bp字符串的起始地址
@@ -38,7 +34,7 @@ loader_start:
  mov ax,0x1301       ;0x1301 是 BIOS 视频服务的 int 0x10 的子功能号，0x13 表示显示字符串，01 表示显示字符串时不移动光标
  mov bx,0x001f       ;BX 用于存储文本的显示属性。0x001f 指定文本的颜色属性。低 4 位 0xF 是前景色（白色），高 4 位 0x1 是背景色（蓝色）。 
  mov dx,0x1800        ;显示在0x18即24行  00列，文本模式为25*80
- int 0x10          ;调用0x10号中断
+ int 10H         ;调用0x10号中断
 
 
 
