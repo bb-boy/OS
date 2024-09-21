@@ -7,13 +7,10 @@ jmp loader_start
 
 GDT_BASE: dd 0x00000000 
           dd 0x00000000    ;gdt的第0个元素为64位全0，方式因为gdtr未初始化造成读错数据
-
 CODE_DESC: dd 0x0000FFFF
            dd DESC_CODE_HIGH4   ;代码段描述符
-
 DATA_STACK_DESC: dd 0x0000FFFF
                  dd DESC_DATA_HIGH4   ;数据段和栈段描述符
-
 VIDEO_DESC: dd 0x80000007           ;低16位是段界限的0-16位置，文本模式的显示适配器的内存地址是0xb8000-0xbffff,所以段界限是0x7fff，粒度是4k，故段界限的低16位是0x0007
             dd DESC_VIDEO_HIGH4   ;段描述符的高32位的低8位是段基址的16-23位，段基址的低16位是低32位
 
@@ -31,7 +28,6 @@ SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0        ;显存段的索引号是3
 ;定义gdt的指针，gdt的指针存放在gdtr中，gdtr的高32位是gdt的起始地址，低16位是以字节为单位的gdt的界限，为段的大小减一
 gdt_ptr dw GDT_LIMIT
         dd GDT_BASE    ;声明一个变量变量，用于存放指针和段界限
-
 loadermsg db 'I am loader in real.'       ;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
 ;my_byte db 0x12,定义一个字节存储0x12
 
