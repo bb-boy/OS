@@ -28,7 +28,7 @@ gdt_ptr dw GDT_LIMIT
 loadermsg db 'I am loader in real.'       ;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
 ;my_byte db 0x12,定义一个字节存储0x12
 loader_start:
-       mov sp, LOADER_BASE_ADDR
+       mov es, LOADER_BASE_ADDR
        mov bp, loadermsg  ;中存放bp字符串的起始地址
        mov cx, 20          ;cx存放字符数
        mov ax, 0x1301       ;0x1301 是 BIOS 视频服务的 int 0x10 的子功能号，0x13 表示显示字符串，01 表示显示字符串时不移动光标
