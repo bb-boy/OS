@@ -5,7 +5,7 @@ jmp loader_start
 
 ;构建全局描述符表，
 GDT_BASE: dd 0x00000000 
-          dd 0x00000000    ;gdt的第0个元素为64位全0，方式因为gdtr未初始化造成读错数据
+           dd 0x00000000    ;gdt的第0个元素为64位全0，方式因为gdtr未初始化造成读错数据
 CODE_DESC: dd 0x0000FFFF
             dd DESC_CODE_HIGH4   ;代码段描述符
 DATA_STACK_DESC: dd 0x0000FFFF
@@ -28,13 +28,13 @@ gdt_ptr dw GDT_LIMIT
 loadermsg db 'I am loader in real.'       ;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
 ;my_byte db 0x12,定义一个字节存储0x12
 loader_start:
- mov sp,LOADER_BASE_ADDR
- mov bp,loadermsg  ;中存放bp字符串的起始地址
- mov cx,20          ;cx存放字符数
- mov ax,0x1301       ;0x1301 是 BIOS 视频服务的 int 0x10 的子功能号，0x13 表示显示字符串，01 表示显示字符串时不移动光标
- mov bx,0x001f       ;BX 用于存储文本的显示属性。0x001f 指定文本的颜色属性。低 4 位 0xF 是前景色（白色），高 4 位 0x1 是背景色（蓝色）。 
- mov dx,0x1800        ;显示在0x18即24行  00列，文本模式为25*80
- int 10H         ;调用0x10号中断
+       mov sp, LOADER_BASE_ADDR
+       mov bp, loadermsg  ;中存放bp字符串的起始地址
+       mov cx, 20          ;cx存放字符数
+       mov ax, 0x1301       ;0x1301 是 BIOS 视频服务的 int 0x10 的子功能号，0x13 表示显示字符串，01 表示显示字符串时不移动光标
+       mov bx, 0x001f       ;BX 用于存储文本的显示属性。0x001f 指定文本的颜色属性。低 4 位 0xF 是前景色（白色），高 4 位 0x1 是背景色（蓝色）。 
+       mov dx, 0x1800        ;显示在0x18即24行  00列，文本模式为25*80
+       int 10H         ;调用0x10号中断
 
 
 
@@ -44,35 +44,35 @@ loader_start:
 ;将cr0的pe位置置为0，控制寄存器CR0的第0 位，即PE 位，Protection Enable，此位用于启用保护模式，是保护模式的开关
 
 ;------------------打开A20----------------------
- in al,0x92
- or al,0000_0010B     ;将端口0x92端口的第一位置为1
- out 0x92,al
+ ;in al,0x92
+ ;or al,0000_0010B     ;将端口0x92端口的第一位置为1
+ ;out 0x92,al
 
 ;------------------加载gdt----------------------
- lgdt [gdt_ptr]
+ ;lgdt [gdt_ptr]
 
 ;------------------cr0的PE位置为1（第0位）--------------
 
- mov eax,cr0
- or eax,0x00000001
- mov cr0,eax
+ ;mov eax,cr0
+ ;or eax,0x00000001
+ ;mov cr0,eax
 
- jmp dword SELECTOR_CODE:p_mode_start       ;跳转指令，用于清空流水线,69-74行有16位和32位的指令，指令的执行都是按照流水线执行的，会出现指令解析的错误
+ ;jmp dword SELECTOR_CODE:p_mode_start       ;跳转指令，用于清空流水线,69-74行有16位和32位的指令，指令的执行都是按照流水线执行的，会出现指令解析的错误
 ;double word表示汇编语言的一种数据类型，dd是伪指令
 
 
-[bits 32]
-p_mode_start:
- mov ax, SELECTOR_DATA
- mov ds, ax 
- mov es, ax
- mov ss, ax
- mov esp, LOADER_STACK_TOP
- mov ax, SELECTOR_VIDEO
- mov gs, ax
+;[bits 32]
+;p_mode_start:
+ ; mov ax, SELECTOR_DATA
+  ;mov ds, ax 
+ ;mov es, ax
+ ;mov ss, ax
+ ;mov esp, LOADER_STACK_TOP
+ ;mov ax, SELECTOR_VIDEO
+ ;mov gs, ax
 
- mov byte [gs:160], 'p'  ;gs表示内存中的显存段地址，文本显示模式下为25*80，一个字符是两个字节，高字节是属性，低字节是ascii码，
+ ;mov byte [gs:160], 'p'  ;gs表示内存中的显存段地址，文本显示模式下为25*80，一个字符是两个字节，高字节是属性，低字节是ascii码，
  
- jmp $
+       jmp $
 
 
