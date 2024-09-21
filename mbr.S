@@ -112,9 +112,9 @@ rd_disk_m_16:
 
 
 ;第5步：从0x1f0端口读取数据
-    mov ax,di
-    mov dx,256
-    mul dx
+    mov ax,di      ;di存放的要读取的扇区数
+    mov dx,256      ;每次读取一个字
+    mul dx                          ;会把dx和ax相乘，操作数是16时，结果的高16位在dx中，低16位在ax中
     mov cx,ax        ;di表示要读取的扇区数，每次读取一个字即两个字节，所以一个扇区读取256次，cx表示loop的次数
 
 

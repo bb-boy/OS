@@ -1,6 +1,6 @@
 ;---------------loader and kernel --------------
 LOADER_BASE_ADDR equ 0x900      ;loader加载到内存中的地址
-LOADER_START_SECTOR equ 0x2     ;loader在硬盘中的扇区号
+LOADER_START_SECTOR equ 0x2     ;loader在硬盘中的扇区号,LBA方式从0开始，第0个扇区是MBR，第
 
 
 ;----------------gdt描述符属性------------------------
@@ -49,11 +49,11 @@ DESC_TYPE_DATA      equ     0010_00000000b
 
 
 ;拼接段描述符的高32位，由于是平坦模型，段描述符的段基址字段都为0，高32位中的0~7和24~31都为0
-DESC_CODE_HIGH4     equ    (0x00 << 24) +  DESC_G_4K  + DESC_D_32 + DESC_L +DESC_AVL + DESC_LIMIT_CODE2 +DESC_P + DESC_DPL_0 + DESC_S_CODE + DESC_TYPE_CODE +0x00
+DESC_CODE_HIGH4     equ    (0x00 << 24) +  DESC_G_4K  + DESC_D_32 + DESC_L +DESC_AVL + DESC_LIMIT_CODE2 +DESC_P  + DESC_S_CODE + DESC_TYPE_CODE + 0x00
 
-DESC_DATA_HIGH4     equ     (0x00 << 24) + DESC_G_4K+DESC_D_32+DESC_L+DESC_AVL+DESC_LIMIT_DATA2+DESC_P+DESC_DPL_0+DESC_S_DATA+DESC_TYPE_DATA+0x00
+DESC_DATA_HIGH4     equ     (0x00 << 24) + DESC_G_4K + DESC_D_32 + DESC_L + DESC_AVL + DESC_LIMIT_DATA2 + DESC_P + DESC_S_DATA + DESC_TYPE_DATA + 0x00
 
-DESC_VIDEO_HIGH4    equ     (0x00 << 24) + DESC_G_4K+DESC_D_32+DESC_L+DESC_AVL+DESC_LIMIT_VIDEO2+DESC_P+DESC_DPL_0+DESC_S_DATA+DESC_TYPE_DATA+0X0b                                
+DESC_VIDEO_HIGH4    equ     (0x00 << 24) + DESC_G_4K + DESC_D_32 + DESC_L + DESC_AVL + DESC_LIMIT_VIDEO2 + DESC_P + DESC_DPL_0 + DESC_S_DATA + DESC_TYPE_DATA + 0X0b                                
  
 
 
