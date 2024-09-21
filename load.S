@@ -32,14 +32,13 @@ SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0        ;显存段的索引号是3
 gdt_ptr dw GDT_LIMIT
         dd GDT_BASE    ;声明一个变量变量，用于存放指针和段界限
 
-loadermsg db 'I loader in real.' 
-;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
+loadermsg db 'I am loader in real.'       ;定义一个loadermsg标签用来表示一个字符串的起始地址，db定义一个或多个字节的数据，后面所有的字符都被转换为ascii码存储
 ;my_byte db 0x12,定义一个字节存储0x12
 
 loader_start:
        mov sp,LOADER_BASE_ADDR
-       mov bp,loadermsg  ;bp中存放字符串的起始地址
-       mov cx,17          ;cx存放字符数
+       mov bp,loadermsg  ;中存放bp字符串的起始地址
+       mov cx,20          ;cx存放字符数
        mov ax,0x1301       ;0x1301 是 BIOS 视频服务的 int 0x10 的子功能号，0x13 表示显示字符串，01 表示显示字符串时不移动光标
        mov bx,0x001f       ;BX 用于存储文本的显示属性。0x001f 指定文本的颜色属性。低 4 位 0xF 是前景色（白色），高 4 位 0x1 是背景色（蓝色）。 
        mov dx,0x1800        ;显示在0x18即24行  00列，文本模式为25*80
@@ -53,20 +52,20 @@ loader_start:
 ;将cr0的pe位置置为0，控制寄存器CR0的第0 位，即PE 位，Protection Enable，此位用于启用保护模式，是保护模式的开关
 
 ;------------------打开A20----------------------
-in al,0x92
-or al,0000_0010B     ;将端口0x92端口的第一位置为1
-out 0x92,al
+       in al,0x92
+       or al,0000_0010B     ;将端口0x92端口的第一位置为1
+       out 0x92,al
 
 ;------------------加载gdt----------------------
-lgdt [gdt_ptr]
+       lgdt [gdt_ptr]
 
 ;------------------cr0的PE位置为1（第0位）--------------
 
-mov eax,cr0
-or eax,0x00000001
-mov cr0,eax
+       mov eax,cr0
+       or eax,0x00000001
+       mov cr0,eax
 
-jmp dword SELECTOR_CODE:p_mode_start       ;跳转指令，用于清空流水线,69-74行有16位和32位的指令，指令的执行都是按照流水线执行的，会出现指令解析的错误
+       jmp dword SELECTOR_CODE:p_mode_start       ;跳转指令，用于清空流水线,69-74行有16位和32位的指令，指令的执行都是按照流水线执行的，会出现指令解析的错误
 ;double word表示汇编语言的一种数据类型，dd是伪指令
 
 
