@@ -8,9 +8,9 @@ jmp loader_start
 GDT_BASE: dd 0x00000000 
           dd 0x00000000    ;gdt的第0个元素为64位全0，方式因为gdtr未初始化造成读错数据
 CODE_DESC: dd 0x0000FFFF
-           dd DESC_CODE_HIGH4   ;代码段描述符
+            dd DESC_CODE_HIGH4   ;代码段描述符
 DATA_STACK_DESC: dd 0x0000FFFF
-                 dd DESC_DATA_HIGH4   ;数据段和栈段描述符
+                  dd DESC_DATA_HIGH4   ;数据段和栈段描述符
 VIDEO_DESC: dd 0x80000007           ;低16位是段界限的0-16位置，文本模式的显示适配器的内存地址是0xb8000-0xbffff,所以段界限是0x7fff，粒度是4k，故段界限的低16位是0x0007
             dd DESC_VIDEO_HIGH4   ;段描述符的高32位的低8位是段基址的16-23位，段基址的低16位是低32位
 
@@ -67,15 +67,16 @@ loader_start:
 
 [bits 32]
 p_mode_start:
- mov ax,SELECTOR_DATA
- mov ds,ax 
- mov es,ax
- mov ss,ax
- mov esp,LOADER_STACK_TOP
- mov ax,SELECTOR_VIDEO
- mov gs,ax
+ mov ax, SELECTOR_DATA
+ mov ds, ax 
+ mov es, ax
+ mov ss, ax
+ mov esp, LOADER_STACK_TOP
+ mov ax, SELECTOR_VIDEO
+ mov gs, ax
 
- mov byte [gs:160],'p'  ;gs表示内存中的显存段地址，文本显示模式下为25*80，一个字符是两个字节，高字节是属性，低字节是ascii码，
+ mov byte [gs:160], 'p'  ;gs表示内存中的显存段地址，文本显示模式下为25*80，一个字符是两个字节，高字节是属性，低字节是ascii码，
+ 
  jmp $
 
 
