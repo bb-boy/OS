@@ -17,6 +17,13 @@ GDT_SIZE equ $ - GDT_BASE
 GDT_LIMIT equ GDT_SIZE - 1
 times 60 dq 0
 
+
+
+total_mem_bytes dd 0                ;用于保存内存容量
+ards_buf times 244 db 0             
+ards_nr dw 0                        ;用于记录ARDS结构体数量
+
+
 gdt_ptr: dw GDT_LIMIT
 		dd GDT_BASE
 
