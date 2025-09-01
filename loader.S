@@ -4,16 +4,14 @@ LOADER_STACK_TOP equ LOADER_BASE_ADDR ;loader在实模式下的栈指针地址
 jmp loader_start
 
 ;构建gdt及其内部描述符
-GDT_BASE: dd 0x00000000             ;低4字节
-          dd 0x00000000             ;高4字节，无效描述符，防止选择子未初始化
-CODE_DESC: dd 0x0000FFFF            ;dd是伪指令，表示define double-word,也就是定义双字变量,这里的0xFFFF表示段界限
-            dd DESC_CODE_HIGH4      ;代码段描述符
-DATA_STACK_DESC: dd 0x0000FFFF      
-                  dd DESC_DATA_HIGH4    ;栈段描述符，也就是数据段描述符,这俩共用一个段是因为方便，至于为什么这里栈的P位为什么不是1,也就是向下扩展，这是因为段描述符是由CPU检查的，而CPU并不知道这个段的作用，程序员若要实现栈向下扩展只需要使得其esp在push时减小即可
-VIDEO_DESC: dd 0x80000007           ;limit=(0xbffff-0xb8000)/4k=0x7，这里的0xb8000~0xbffff是实模式下文本模式显存适配器的内存地址，因此段界限即为上述方程
-            dd DESC_VIDEO_HIGH4 ;此时dpl为0，此乃显存段描述符
-;以上共填充了3个段描述符 + 1个首段无效描述符
-
+GDT_BASE: dd 0x00000000
+		dd 0x00000000
+CODE_DESC: dd  0x0000ffff
+		dd DESC_CODE_HIGH4
+DATA_STACK_DESC: dd 0x0000ffff
+			dd DESC_DATA_HIGH4
+VIDEO_DESC: dd 0x80000007
+		dd DESC_VIDEO_HIGH4
 
 
 GDT_SIZE equ $ - GDT_BASE           ;计算当前GDT已经填充的大小
@@ -175,7 +173,7 @@ add edx, 0x100000          ; 补1MB
 mov [total_mem_bytes], edx ; 总物理内存容量写入全局变量（单位：字节）
 
 .error_hlt
-mov dword [total_mem_bytes], 0x0
+jmp $
 ;----------------------------------------------------------------------------------------------------------------------
 
 
