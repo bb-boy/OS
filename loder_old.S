@@ -169,6 +169,6 @@ p_mode:
 	mov esp,stack_top
 	mov ax,SELECTOR_VIDEO
 	mov gs,ax
-	mov byte [gs:160],'p'	
+	mov byte [gs:160],'P'	
 
 	jmp $
