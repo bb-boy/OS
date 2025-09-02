@@ -1,230 +1,173 @@
-%include "boot.inc"
-section loader vstart=LOADER_BASE_ADDR ;起始地址按照之前约定一样
-LOADER_STACK_TOP equ LOADER_BASE_ADDR ;loader在实模式下的栈指针地址
-jmp loader_start
+%include "boot.inc"     ; 包含引导程序使用的常量和宏定义
+section loader vstart=LOADER_BASE_ADDR  ; 定义loader段，起始地址为LOADER_BASE_ADDR (0x900)
+;LOADER_STACK_TOP equ LOADER_BASE_ADDR ;loader在实模式下的栈指针地址
+jmp loader_start        ; 跳转到loader_start标签开始执行
 
-;构建gdt及其内部描述符
-GDT_BASE: dd 0x00000000
-		dd 0x00000000
-CODE_DESC: dd  0x0000ffff
-		dd DESC_CODE_HIGH4
-DATA_STACK_DESC: dd 0x0000ffff
-			dd DESC_DATA_HIGH4
-VIDEO_DESC: dd 0x80000007
-		dd DESC_VIDEO_HIGH4
 
+GDT_BASE: dd 0x00000000     ; GDT起始地址的低32位，初始值为0
+		dd 0x0000     ; GDT起始地址的高32位，初始值为0
+CODE_DESC: dd  0x0000ffff   ; 代码段描述符的低32位，段界限为0xFFFF(64KB)
+		dd DESC_CODE_HIGH4  ; 代码段描述符的高32位，通过宏DESC_CODE_HIGH4生成
+DATA_STACK_DESC: dd 0x0000ffff  ; 数据/栈段描述符的低32位，段界限为0xFFFF(64KB)
+			dd DESC_DATA_HIGH4  ; 数据/栈段描述符的高32位，通过宏DESC_DATA_HIGH4生成
+VIDEO_DESC: dd 0x80000007   ; 视频段描述符的低32位，特殊处理的视频段描述符
+		dd DESC_VIDEO_HIGH4  ; 视频段描述符的高32位，通过宏DESC_VIDEO_HIGH4生成
 
-GDT_SIZE equ $ - GDT_BASE           ;计算当前GDT已经填充的大小
-GDT_LIMIT equ GDT_SIZE - 1          ;
-times 60 dq 0                       ;此处预留60个描述符空位，这里跟上面一致，表示define quad-word ,也就是定义60个以0填充的段描述符,这里的times是循环次数
+GDT_SIZE equ $ - GDT_BASE   ; 计算GDT的大小，$表示当前位置
+GDT_LIMIT equ GDT_SIZE - 1  ; GDT界限，等于大小减1
+times 60 dq 0               ; 预留60个双字(60*8=480字节)空间，用于GDT后续扩展
 
 
-;以上代码加起来4*8+60*8=512bytes
-;----------------------------------------------------------------------------------------------------
 
+total_mem_bytes dd 0                ; 全局变量，用于保存检测到的总内存容量（单位：字节）
+ards_buf times 244 db 0             ; 缓冲区，用于存储ARDS结构体信息，大小为244字节
+ards_nr dw 0                        ; 全局变量，记录ARDS结构体的数量
 
 
-;------ 这里定义选择子------------
-SELECTOR_CODE equ (0x0001<<3) + TI_GDT + RPL0   ;相当于(CODE_DESC - GDT_BASE)/8 + TI_GDT + RPL0
-SELECTOR_DATA equ (0x0002<<3) + TI_GDT + RPL0   ;同上类似
-SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0   ;同上类似
+STACK_SIZE      equ 512             ; 定义栈大小为 512 字节
+loader_stack:                       ; 定义栈空间起始地址
+    times STACK_SIZE db 0         ; 预留 512 字节的空间用于栈
+stack_top:                          ; 定义一个标签表示栈顶位置
 
 
+gdt_ptr: dw GDT_LIMIT              ; GDT限制值，低16位
+		dd GDT_BASE              ; GDT基地址，高32位
 
-;-------------- 以下定义gdt的指针，前2字节是gdt的界限，后4字节是gdt的起始地址 ---------
-gdt_ptr dw GDT_LIMIT    ;define word
-  dd GDT_BASE
+SELECTOR_CODE equ (0x0001<<3) + TI_GDT + RPL0  ; 代码段选择子，索引1，GDT中，特权级0
+SELECTOR_DATA  equ (0x0002<<3) + TI_GDT + RPL0 ; 数据段选择子，索引2，GDT中，特权级0
+SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0 ; 视频段选择子，索引3，GDT中，特权级0
+ 
 
 
-total_mem_bytes dd 0                ;用于保存内存容量
-ards_buf times 244 db 0             
-ards_nr dw 0                        ;用于记录ARDS结构体数量
+loadermsg db 'i am loader in real.'  ; 定义字符串，用于显示在屏幕上
 
-;此部分代码 4+244+2+6=256bytes  gdt_ptr+total_mem_bytes+ards_buf+ards_nr
-;--------------------------------------------------------------------------------------------
 
+loader_start:           ; loader开始执行的入口点
+	mov sp, stack_top      ; 设置堆栈指针为栈顶地址
+	mov cx, 20             ; 设置CX为20，用于显示字符串的长度
+	mov bp, loadermsg      ; 将字符串地址加载到BP寄存器
+	mov ax, 0x1301         ; 设置AH=0x13(文本模式)，AL=0x01(光标定位)
+	mov bx, 0x001f         ; 设置BH=0(页面号)，BL=0x1f(白色文字，黑色背景)
+	mov dx, 0x1800         ; 设置DH=0x18(行)，DL=0x0(列)
+	int 0x10               ; 调用BIOS中断显示字符串
 
 
-loadermsg db 'I am loader in real.'         ;在内存中定义一个字符串常量
-;dw 是汇编语言中的伪指令（pseudo-instruction）。它不是CPU执行的机器指令，而是指导汇编器如何在内存中分配和初始化数据的指令。具体来说：dw 表示 "define word"（定义字）
-;它告诉汇编器分配2个字节（16位）的内存空间并用指定的值初始化这段内存类似地，dd 也是伪指令，表示 "define double word"（定义双字），分配4个字节（32位）的内存空间
+	xor ebx, ebx               ; 第一次调用，ebx必须为0（后续BIOS会返回新的ebx做链表迭代）
+	mov edx, 0x534d4150        ; 'SMAP'标志，必须填，整个循环不变
+	mov di, ards_buf           ; di指向内存缓冲区，用于存放ARDS结构
 
+	.e820_mem_get_loop:        ; E820内存获取循环开始
+	mov eax, 0x0000e820        ; eax: 子功能号，每次调用都要重置为0x0000e820
+	mov ecx, 20                ; ARDS结构大小20字节，ecx填结构长度
+	int 0x15                   ; BIOS中断，获取内存信息（E820方式）
+	jc .e820_failed_so_try_e801 ; 若CF置位，出错，尝试下一个方法(e801)
+	add di, cx                 ; di增加20，指向下一个ARDS写入位置
+	inc word [ards_nr]         ; 已获取的ARDS数量加1
+	cmp ebx, 0                 ; 如果ebx返回为0，表明ARDS已全部返回
+	jnz .e820_mem_get_loop     ; 如果非0，则继续获取下一个ARDS
 
-;--------------------- 显示字符串在屏幕上 -----------------------------------------
-loader_start:
 
-  mov sp ,LOADER_BASE_ADDR
-  mov bp ,loadermsg     ;ES:BP = 字符串地址
-  mov cx ,20            ;CX = 字符串长度                ;注意这里使用的是BIOS中断，一旦进入保护模式就没有BIOS中断了
-  mov ax ,0x1301        ;AH = 13H,AL = 01H
-  mov bx ,0x001f        ;页号为0,蓝底粉红字
-  mov dx ,0x1800        
-  int 0x10              ;10H号中断
-;----------------------------------------------
-;INT 0x10   功能号：0x13    功能描述：打印字符串
-;----------------------------------------------
-;输入：
-;AH子功能号=13H
-;BH = 页号
-;BL = 属性
-;CX = 字符串长度
-;(DH,DL) = 字符串地址
-;AL = 显示输出方式
-; 0 -- 字符串只含显示字符，显示属性在BL中，显示后光标位置不变
-; 1 -- 字符串只含显示字符，显示属性在BL中，显示后光标位置改变
-; 2 -- 字符串只含显示字符和显示属性，显示后光标位置不变
-; 3 -- 字符串只含显示字符和显示属性，显示后光标位置改变
-; 无返回值
 
 
-;------------------------------------------------------------------------------------
+	mov cx, [ards_nr]          ; 用cx保存ARDS数量
+	mov ebx, ards_buf          ; ebx指向ARDS缓冲区起始地址
+	xor edx, edx               ; edx用于存最大内存容量，先清零
 
+	.find_max_mem_area:        ; 查找最大内存区域的循环开始
+	mov eax, [ebx]             ; eax = base_addr_low（内存块起始地址低32位）
+	add eax, [ebx+8]           ; eax += length_low（内存块长度低32位，得末尾地址）
+	add ebx, 20                ; 指向下一个ARDS结构体
+	cmp edx, eax               ; edx存最大值，逐个比较
+	jge .next_ards             ; 如果当前最大>=本块末尾，不更新
+	mov edx, eax               ; 否则用本块末尾更新最大值
+	.next_ards:                ; 处理下一个ARDS结构体
+	loop .find_max_mem_area    ; 遍历所有ARDS结构体
+	jmp .mem_get_ok            ; 跳到成功出口
+	
 
 
 
 
 
 
+	.e820_failed_so_try_e801:  ; 当E820方法失败时，尝试E801方法
+	mov ax, 0xe801             ; 设置AX=0xe801，调用BIOS中断获取内存信息
+	int 0x15                   ; BIOS中断调用
+	jc .e801_failed_so_try88   ; 如果出错，降级到方法88
 
+	; 1. 算低15MB容量 (ax,cx存的都是KB)
+	mov cx, 0x400              ; 1024，准备计算低15MB的总字节数
+	mul cx                     ; ax*cx, 得到低15MB的总字节数，结果存edx:eax
+	shl edx, 16                ; edx左移16位，为组合高低16位
+	and eax, 0x0000FFFF        ; 只保留低16位
+	or edx, eax                ; 合成完整的32位容量
+	add edx, 0x100000          ; 补上1MB，因e801通常返回15MB，不含1MB基础区
+	mov esi, edx               ; esi备份低15MB容量
 
-;------------------------------查询磁盘容量-----------------------------------------------------------------------
-xor ebx, ebx               ; 第一次调用，ebx 必须为 0（后续BIOS会返回新的ebx做链表迭代）
-mov edx, 0x534d4150        ; 'SMAP'标志，必须填，整个循环不变
-mov di, ards_buf           ; di指向内存缓冲区，用于存放ARDS结构
+	; 2. 算16MB以上容量 (bx,dx存的都是64KB块数)
+	xor eax, eax               ; 清空EAX寄存器
+	mov ax, bx                 ; 将BX的值移动到AX
+	mov ecx, 0x10000           ; 65536（即64KB），准备计算16MB以上内存容量
+	mul ecx                    ; ax*ecx = bx*64KB = 16MB以上容量
+	add esi, eax               ; 累加到esi（edx一般为0，因为最大只到4G）
+	mov edx, esi               ; edx = 总内存字节数
+	jmp .mem_get_ok            ; 跳转到成功出口
 
-.e820_mem_get_loop:
-mov eax, 0x0000e820        ; eax: 子功能号，每次调用都要重置
-mov ecx, 20                ; ARDS结构大小20字节，ecx填结构长度
-int 0x15                   ; BIOS中断，取ARDS
-jc .e820_failed_so_try_e801 ; 若CF置位，出错，尝试下一个方法
-add di, cx                 ; di增加20，指向下一个ARDS写入位置
-inc word [ards_nr]         ; 已获取的ARDS数量加1
-cmp ebx, 0                 ; 如果ebx返回为0，表明ARDS已全部返回
-jnz .e820_mem_get_loop     ; 如果非0，则继续获取下一个ARDS
 
 
 
 
+	.e801_failed_so_try88:     ; 当E801方法也失败时，尝试88方法
+	mov ah, 0x88               ; 设置AH=0x88，调用BIOS中断获取内存信息
+	int 0x15                   ; BIOS中断调用
+	jc .error_hlt              ; 如果再失败，系统只能报错停机
 
-mov cx, [ards_nr]          ; 用cx保存ARDS数量
-mov ebx, ards_buf          ; ebx指向ARDS缓冲区起始
-xor edx, edx               ; edx用于存最大内存容量，先清零
+	and eax, 0x0000FFFF        ; 只保留ax（单位：KB）
 
-.find_max_mem_area:
-mov eax, [ebx]             ; eax = base_addr_low（内存块起始地址低32位）
-add eax, [ebx+8]           ; eax += length_low（内存块长度低32位，得末尾地址）
-add ebx, 20                ; 指向下一个ARDS
-cmp edx, eax               ; edx存最大值，逐个比较
-jge .next_ards             ; 如果当前最大>=本块末尾，不更新
-mov edx, eax               ; 否则用本块末尾更新最大值
-.next_ards:
-loop .find_max_mem_area    ; 遍历所有ARDS结构
-jmp .mem_get_ok            ; 跳到成功出口
+	mov cx, 0x400              ; 1024，用于转换KB到字节
+	mul cx                     ; ax*1024 得到字节
+	shl edx, 16                ; 左移16位，为组合高低16位
+	or edx, eax                ; 组合成32位容量
+	add edx, 0x100000          ; 补1MB
 
 
 
+	.mem_get_ok:               ; 内存获取成功的出口点
+	mov [total_mem_bytes], edx ; 总物理内存容量写入全局变量（单位：字节）
+	jmp .prepare_to_protect_mode ; 跳转到准备进入保护模式的步骤
+	
+	.error_hlt:                ; 错误处理：系统停机
+	jmp $                      ; 无限循环停机
 
 
 
 
-.e820_failed_so_try_e801:
-mov ax, 0xe801
-int 0x15
-jc .e801_failed_so_try88   ; 如果出错，降级下一种方式
 
-; 1. 算低15MB容量 (ax,cx存的都是KB)
-mov cx, 0x400              ; 1024
-mul cx                     ; ax*cx, 得到低15MB的总字节数，结果存edx:eax
-shl edx, 16                ; edx左移16位，为组合高低16位
-and eax, 0x0000FFFF        ; 只保留低16位
-or edx, eax                ; 合成完整的32位容量
-add edx, 0x100000          ; 补上1MB，因e801通常返回15MB，不含1MB基础区
-mov esi, edx               ; esi备份低15MB容量
+	.prepare_to_protect_mode:  ; 准备进入保护模式的步骤
+	in al,0x92                 ; 读取端口0x92的值到AL寄存器
+	or al,0000_0010b           ; 设置AL的第1位为1，启用A20地址线
+	out 0x92,al                ; 将修改后的AL值写回端口0x92
 
-; 2. 算16MB以上容量 (bx,dx存的都是64KB块数)
-xor eax, eax
-mov ax, bx
-mov ecx, 0x10000           ; 65536（即64KB）
-mul ecx                    ; ax*ecx = bx*64KB = 16MB以上容量
-add esi, eax               ; 累加到esi（edx一般为0，因为最大只到4G）
-mov edx, esi               ; edx = 总内存字节数
-jmp .mem_get_ok
+	lgdt [gdt_ptr]             ; 加载GDT指针到GDTR寄存器
 
+	mov eax, cr0               ; 将CR0控制寄存器的值加载到EAX
+	or eax,0x00000001         ; 设置CR0的第0位为1，开启保护模式标志
+	mov cr0,eax                ; 将修改后的EAX值写回CR0寄存器
 
+	jmp dword SELECTOR_CODE:p_mode  ; 使用长跳转切换到保护模式代码段
 
 
 
-.e801_failed_so_try88:
-mov ah, 0x88
-int 0x15
-jc .error_hlt              ; 如果再失败，系统只能报错停机
+[bits 32]                  ; 切换到32位汇编模式
 
-and eax, 0x0000FFFF        ; 只保留ax（单位：KB）
+p_mode:                    ; 保护模式下的入口点
+	mov ax,SELECTOR_DATA       ; 加载数据段选择子到AX寄存器
+	mov ss,ax                  ; 设置堆栈段寄存器为数据段
+	mov ds,ax                  ; 设置数据段寄存器为数据段
+	mov es,ax                  ; 设置附加段寄存器为数据段
+	mov esp,stack_top          ; 设置堆栈指针为栈顶地址
+	mov ax,SELECTOR_VIDEO      ; 加载视频段选择子到AX寄存器
+	mov gs,ax                  ; 设置图形段寄存器为视频段
+	mov byte [gs:160],'P'      ; 在视频内存中写入字符'P'，表示已进入保护模式
 
-mov cx, 0x400              ; 1024
-mul cx                     ; ax*1024 得到字节
-shl edx, 16
-or edx, eax                ; 组合成32位容量
-add edx, 0x100000          ; 补1MB
-
-
-
-.mem_get_ok:
-mov [total_mem_bytes], edx ; 总物理内存容量写入全局变量（单位：字节）
-
-.error_hlt
-jmp $
-;----------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-;---------------- 准备进入保护模式 ------------------------------------------------
-;1 打开A20
-;2 加载gdt
-;3.将CR0的PE位置0,
-
-;------------=- 打开A20 --------------
-in al,0x92           ; 读端口0x92
-or al,0000_0010B     ; 置A20门（bit1=1）
-out 0x92,al          ; 写回端口
-
-
-
-
-;------------- 加载GDT --------------
-lgdt [gdt_ptr]
-
-
-
-;------------- CR0第0位置1 ----------
-mov eax, cr0
-or eax, 0x00000001
-mov cr0, eax
-
-jmp dword SELECTOR_CODE:p_mode_start ;刷新流水线
-
-
-;--------------------------------------------------------------------------------------
-
-[bits 32]
-p_mode_start:
-  mov ax, SELECTOR_DATA
-  mov ds, ax
-  mov es, ax
-  mov ss, ax
-  mov esp, LOADER_STACK_TOP
-  mov ax, SELECTOR_VIDEO
-  mov gs, ax
-
-  mov byte [gs:160], 'p'
-
-  jmp $
+	jmp $                      ; 无限循环，保持程序运行
