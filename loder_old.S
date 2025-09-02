@@ -1,6 +1,6 @@
 %include "boot.inc"
 section loader vstart=LOADER_BASE_ADDR  ;起始地址按照之前约定一样
-LOADER_STACK_TOP equ LOADER_BASE_ADDR ;loader在实模式下的栈指针地址
+;LOADER_STACK_TOP equ LOADER_BASE_ADDR ;loader在实模式下的栈指针地址
 jmp loader_start
 
 
@@ -24,6 +24,12 @@ ards_buf times 244 db 0
 ards_nr dw 0                        ;用于记录ARDS结构体数量
 
 
+STACK_SIZE      equ 512             ; 定义栈大小为 512 字节
+loader_stack:
+    times STACK_SIZE db 0         ; 预留 512 字节的空间
+stack_top:                          ; 定义一个标签表示栈顶
+
+
 gdt_ptr: dw GDT_LIMIT
 		dd GDT_BASE
 
@@ -37,7 +43,7 @@ loadermsg db 'i am loader in real.'
 
 
 loader_start:
-	mov sp, LOADER_BASE_ADDR
+	mov sp, stack_top
 	mov cx, 20
 	mov bp, loadermsg
 	mov ax, 0x1301
@@ -159,7 +165,7 @@ p_mode:
 	mov ss,ax
 	mov ds,ax
 	mov es,ax
-	mov esp,LOADER_STACK_TOP
+	mov esp,stack_top
 	mov ax,SELECTOR_VIDEO
 	mov gs,ax
 	mov byte [gs:160],'p'	
