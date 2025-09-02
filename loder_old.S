@@ -84,7 +84,7 @@ loader_start:
 	.next_ards:
 	loop .find_max_mem_area    ; 遍历所有ARDS结构
 	jmp .mem_get_ok            ; 跳到成功出口
-
+	
 
 
 
@@ -135,7 +135,8 @@ loader_start:
 
 	.mem_get_ok:
 	mov [total_mem_bytes], edx ; 总物理内存容量写入全局变量（单位：字节）
-
+	jmp .prepare_to_protect_mode
+	
 	.error_hlt:
 	jmp $
 
@@ -143,7 +144,7 @@ loader_start:
 
 
 
-
+	.prepare_to_protect_mode:
 	in al,0x92
 	or al,0000_0010b
 	out 0x92,al
