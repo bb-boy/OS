@@ -1,9 +1,11 @@
 %include "boot.inc"     ; 包含引导程序使用的常量和宏定义
 section loader vstart=LOADER_BASE_ADDR  ; 定义loader段，起始地址为LOADER_BASE_ADDR (0x900)
 ;LOADER_STACK_TOP equ LOADER_BASE_ADDR ;loader在实模式下的栈指针地址
-jmp loader_start        ; 跳转到loader_start标签开始执行
+jmp loader_start        ; 跳转到loader_start标签开始执行,这个jmp命令不可以删除，
+;这个 jmp loader_start 是用来**跳过前面整块数据（GDT、缓冲区、栈等）**的——CPU 从 LOADER_BASE_ADDR 开始执行时，第一条必须是“可执行的指令”。如果你把它删掉，处理器会把 GDT_BASE 这些 dd/dq 数据当作指令去执行，直接跑飞/死机。
 
 
+;-------------------------------------------------数据区---------------------------------------------------------------
 GDT_BASE: dd 0x00000000     ; GDT起始地址的低32位，初始值为0
 		dd 0x0000     ; GDT起始地址的高32位，初始值为0
 CODE_DESC: dd  0x0000ffff   ; 代码段描述符的低32位，段界限为0xFFFF(64KB)
@@ -19,7 +21,7 @@ times 60 dq 0               ; 预留60个双字(60*8=480字节)空间，用于GD
 
 
 
-total_mem_bytes dd 0                ; 全局变量，用于保存检测到的总内存容量（单位：字节）
+total_mem_bytes dd 0                ; 全局变量，用于保存检测到的总内存容量（单位：字节），在内存的0xb03位置
 ards_buf times 244 db 0             ; 缓冲区，用于存储ARDS结构体信息，大小为244字节
 ards_nr dw 0                        ; 全局变量，记录ARDS结构体的数量
 
@@ -41,7 +43,9 @@ SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0 ; 视频段选择子，索引3，
 
 loadermsg db 'i am loader in real.'  ; 定义字符串，用于显示在屏幕上
 
+；------------------------------------------------------------------------------------------------------------------------------
 
+；
 loader_start:           ; loader开始执行的入口点
 	mov sp, stack_top      ; 设置堆栈指针为栈顶地址
 	mov cx, 20             ; 设置CX为20，用于显示字符串的长度
