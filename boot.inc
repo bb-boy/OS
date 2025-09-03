@@ -1,6 +1,9 @@
 ;---------------loader and kernel --------------
 LOADER_BASE_ADDR equ 0x900      ;loader加载到内存中的地址
 LOADER_START_SECTOR equ 0x2     ;loader在硬盘中的扇区号,LBA方式从0开始，第0个扇区是MBR，第
+PAGE_DIR_TABLE_POS equ 0x100000 ;页目录表的位置，1MB
+
+
 
 
 ;----------------gdt描述符属性------------------------
@@ -69,3 +72,9 @@ RPL3   equ  11b
 TI_GDT          equ     000b  
 TI_LDT          equ     100b  
 
+;--------------- 页表相关属性 -----------------
+PG_P     equ   1b;页表项的第0位，表示该页是否存在于内存中，1表示存在，0表示不存在
+PG_RW_R  equ   00b 
+PG_RW_W  equ   10b;
+PG_US_S  equ   000b ;
+PG_US_U  equ   100b
