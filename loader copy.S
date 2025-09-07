@@ -164,7 +164,7 @@ loader_start:           ; loader开始执行的入口点
 
 [bits 32]                  ; 切换到32位汇编模式
 
-p_mode:                    ; 保护模式下的入口点
+p_mode:                    		; 保护模式下的入口点
 	mov ax,SELECTOR_DATA       ; 加载数据段选择子到AX寄存器
 	mov ss,ax                  ; 设置堆栈段寄存器为数据段
 	mov ds,ax                  ; 设置数据段寄存器为数据段
@@ -172,61 +172,66 @@ p_mode:                    ; 保护模式下的入口点
 	mov esp,stack_top          ; 设置堆栈指针为栈顶地址
 	mov ax,SELECTOR_VIDEO      ; 加载视频段选择子到AX寄存器
 	mov gs,ax                  ; 设置图形段寄存器为视频段
+
+
+
+
+
 ;------------------------------------------开启页表-----------------------------
-	call setup_page
-	sgdt [gdt_ptr]
-	mov ebx, [gdt_ptr + 2]
-	or dword [ebx + 0x18 + 4], 0xc0000000
-	add dword [gdt_ptr + 2], 0xc0000000
-	add esp, 0xc0000000
-	mov eax, PAGE_DIR_TABLE_POS
-	mov cr3, eax
-	mov eax, cr0
-	or eax, 0x80000000
-	mov cr0, eax
-	lgdt [gdt_ptr]
-	mov byte [gs:160], 'V'
-	jmp $
+	call setup_page                           ; 构建页目录/页表（高半区映射、递归映射）
+	sgdt [gdt_ptr]                            ; 保存当前 GDT 指针到内存（2B limit + 4B base）
+	mov ebx, [gdt_ptr + 2]                    ; 取出 GDT 的基址到 EBX
+	or dword [ebx + 0x18 + 4], 0xc0000000     ; 将选择子 0x18 的段基址 OR 上 3G（高半区）
+	add dword [gdt_ptr + 2], 0xc0000000       ; 将 GDT 基址整体平移到高半区（供分页后 lgdt 使用）
+	add esp, 0xc0000000                       ; 将当前栈指针切换到高半区映射
+	mov eax, PAGE_DIR_TABLE_POS               ; 页目录物理地址
+	mov cr3, eax                              ; 加载 CR3，设定页目录基址
+	mov eax, cr0                              ; 读取 CR0 标志位
+	or eax, 0x80000000                        ; 置位 PG(bit31)=1，开启分页
+	mov cr0, eax                              ; 回写 CR0 生效
+	lgdt [gdt_ptr]                            ; 使用高半区的 GDT 基址重载 GDT
+	mov byte [gs:160], 'V'                    ; 在显存处写入字符，简单的分页后可见性测试
+	jmp $                                     ; 暂停（可替换为跳转到内核 C 入口）
 
 	setup_page:
-		mov ecx, 4096
-		mov esi, 0
+		mov ecx, 4096                          ; 需要清零的字节数（页目录/页表区域 4KB）
+		mov esi, 0                             ; 偏移计数器
 	.clear_page_dir:
-		mov byte [PAGE_DIR_TABLE_POS + esi], 0
-		inc esi
-		loop .clear_page_dir
+		mov byte [PAGE_DIR_TABLE_POS + esi], 0  ; 逐字节清零页目录所在内存
+		inc esi                                ; 下一个字节
+		loop .clear_page_dir                    ; ECX--，未到 0 则继续
 
 	.create_pde:
-		mov eax, PAGE_DIR_TABLE_POS
-		add eax, 0x1000
-		mov ebx, eax
-		or eax, PG_US_U | PG_RW_W | PG_P
-		mov [PAGE_DIR_TABLE_POS + 0x0], eax
-		mov [PAGE_DIR_TABLE_POS + 0xc00], eax
-		sub eax, 0x1000
-		mov [PAGE_DIR_TABLE_POS + 4092], eax
+		mov eax, PAGE_DIR_TABLE_POS             ; 页目录物理基址
+		add eax, 0x1000                         ; 指向第 1 个页表物理基址
+		mov ebx, eax                            ; EBX 暂存第 1 个页表地址（后续写 PTE）
+		or eax, PG_US_U | PG_RW_W | PG_P        ; 带标志的页表地址（User/Write/Present）
+		mov [PAGE_DIR_TABLE_POS + 0x0], eax     ; PDE[0]：低端恒等映射（0~4MB 由该页表覆盖的一部分）
+		mov [PAGE_DIR_TABLE_POS + 0xc00], eax   ; PDE[768]：高半区 3G 起映射到同一页表
+		sub eax, 0x1000                          ; 回到页目录物理基址 | flags
+		mov [PAGE_DIR_TABLE_POS + 4092], eax    ; PDE[1023]：递归映射到页目录自身
 
-		mov ecx, 256
-		mov esi, 0
-		mov edx, PG_US_U | PG_RW_W | PG_P
+		mov ecx, 256                            ; 填充第 1 个页表的前 256 项（按需覆盖物理内存）
+		mov esi, 0                              ; PTE 索引
+		mov edx, PG_US_U | PG_RW_W | PG_P       ; EDX 作为“当前物理页地址 | flags”，初始为 flags
 	.create_pte:
-		mov [ebx+esi*4], edx
-		add edx,4096
-		inc esi
-		loop .create_pte
+		mov [ebx+esi*4], edx                    ; PTE[esi] ← 当前物理页地址 | flags
+		add edx,4096                            ; 前进到下一个物理页
+		inc esi                                 ; 下一个 PTE
+		loop .create_pte                        ; 直到填满所需项
 
-		mov eax, PAGE_DIR_TABLE_POS
-		add eax, 0x2000
-		or eax, PG_US_U | PG_RW_W | PG_P
-		mov ebx, PAGE_DIR_TABLE_POS
-		mov ecx, 254
-		mov esi, 769
+		mov eax, PAGE_DIR_TABLE_POS             ; 预备构造高半区剩余 PDE
+		add eax, 0x2000                         ; EAX = 第 2 张页表的物理基址
+		or eax, PG_US_U | PG_RW_W | PG_P        ; 加标志
+		mov ebx, PAGE_DIR_TABLE_POS             ; EBX = 页目录基址
+		mov ecx, 254                            ; 将 PDE[769..1022] 指向连续的页表（保留高半区地址空间）
+		mov esi, 769                            ; 起始 PDE 索引 = 768+1
 	.create_kernel_pde:
-		mov [ebx+esi*4], eax
+		mov [ebx+esi*4], eax                    ; PDE[esi] → 对应的页表（暂未填充 PTE，按需分配）
 		inc esi
-		add eax, 0x1000
+		add eax, 0x1000                         ; 下一张页表物理地址
 		loop .create_kernel_pde
-		ret
+		ret                                     ; 返回，分页结构搭建完成
 
 
 
