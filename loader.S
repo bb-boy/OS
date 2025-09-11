@@ -172,6 +172,124 @@ p_mode:                    ; 保护模式下的入口点
 	mov esp,stack_top          ; 设置堆栈指针为栈顶地址
 	mov ax,SELECTOR_VIDEO      ; 加载视频段选择子到AX寄存器
 	mov gs,ax                  ; 设置图形段寄存器为视频段
-	mov byte [gs:160],'P'      ; 在视频内存中写入字符'P'，表示已进入保护模式
 
-	jmp $                      ; 无限循环，保持程序运行
+	mov eax,KERNEL_START_SECTOR;
+	mov ebx,KERNEL_BIN_BASE_ADDR;
+	mov ecx,200;
+	call rd_disk_m_32;
+
+;------------------------------------------开启页表-----------------------------
+	call setup_page
+	sgdt [gdt_ptr]
+	mov ebx, [gdt_ptr + 2]
+	or dword [ebx + 0x18 + 4], 0xc0000000
+	add dword [gdt_ptr + 2], 0xc0000000
+	add esp, 0xc0000000
+	mov eax, PAGE_DIR_TABLE_POS
+	mov cr3, eax
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+	lgdt [gdt_ptr]
+	mov byte [gs:160], 'V'
+	jmp SELECTOR_CODE:enter_kernel
+enter_kernel:
+	call kernel_init
+	mov esp, 0xc0000000 + 0x90000
+	jmp KERNEL_ENTRY_POINT
+	
+	setup_page:
+		mov ecx, 4096
+		mov esi, 0
+	.clear_page_dir:
+		mov byte [PAGE_DIR_TABLE_POS + esi], 0
+		inc esi
+		loop .clear_page_dir
+
+	.create_pde:
+		mov eax, PAGE_DIR_TABLE_POS
+		add eax, 0x1000
+		mov ebx, eax
+		or eax, PG_US_U | PG_RW_W | PG_P
+		mov [PAGE_DIR_TABLE_POS + 0x0], eax
+		mov [PAGE_DIR_TABLE_POS + 0xc00], eax
+		sub eax, 0x1000
+		mov [PAGE_DIR_TABLE_POS + 4092], eax
+
+		mov ecx, 256
+		mov esi, 0
+		mov edx, PG_US_U | PG_RW_W | PG_P
+	.create_pte:
+		mov [ebx+esi*4], edx
+		add edx,4096
+		inc esi
+		loop .create_pte
+
+		mov eax, PAGE_DIR_TABLE_POS
+		add eax, 0x2000
+		or eax, PG_US_U | PG_RW_W | PG_P
+		mov ebx, PAGE_DIR_TABLE_POS
+		mov ecx, 254
+		mov esi, 769
+	.create_kernel_pde:
+		mov [ebx+esi*4], eax
+		inc esi
+		add eax, 0x1000
+		loop .create_kernel_pde
+		ret
+
+
+;----------------拷贝kernel.bin中的segment到编译的地址-------------------
+kernel_init:
+	xor eax, eax
+	xor ebx, ebx
+	xor ecx, ecx
+	xor edx, edx
+
+	mov dx,[KERNEL_BIN_BASE_ADDR+42];读取程序头表中一个条目的大小
+	mov ebx,[KERNEL_BIN_BASE_ADDR+28];读取程序头表相对与文件头的偏移
+	add ebx,KERNEL_BIN_BASE_ADDR;获得程序头表的物理地址
+	mov cx,[KERNEL_BIN_BASE_ADDR+44];读取程序头表中条目的数量
+
+.each_segment:
+		cmp byte [ebx+0],PT_NULL
+		je .PTNULL
+		
+
+		push dword [ebx+16];把这个条目对应的段的大小压入栈（memcpy的第三个参数）
+		mov eax,[ebx+4];读取这个段相对于文件的偏移量
+		add eax,KERNEL_BIN_BASE_ADDR;获得这个段在内存中的地址
+		push eax;把这个段的地址压入栈（memcpy的第二个参数）
+		push dword [ebx+8];目的地址入栈（memcpy的第一个参数）
+		call mem_cpy
+		add esp,12;清理栈
+.PTNULL:
+		add ebx,edx;下一个程序头表条目
+		loop .each_segment
+		ret
+
+;---------------------mem_cpy函数---------------------------
+
+memcpy:
+	cld 			  
+; cld (Clear Direction Flag)：这是清除方向标志位 DF 的指令。在x86架构中，字符串操作指令（比如后面要用的 movsb）的行为受 DF 标志位影响。
+;当 DF = 0 时（通过 cld 设置），内存地址会自动增加。
+;当 DF = 1 时（通过 std 设置），内存地址会自动减少。
+;在这里，我们希望从头到尾地复制内存，所以需要地址是递增的。cld 是确保这一点的关键步骤。
+	push ebp  
+;保存调用者 (kernel_init) 的 ebp 值
+	mov ebp, esp
+;设置当前函数的栈帧基址
+	push ecx;外层循环用到的cx寄存器要保存
+	mov edi, [ebp + 8] ; 目的地址
+	mov esi, [ebp + 12]; 源地址
+	mov ecx, [ebp + 16]; 拷贝字节数
+	rep movsb;
+;movsb 就是从 esi 指向的地方复制1个字节到 edi 指向的地方，然后把 esi 和 edi 都向前移动一个位置，为复制下一个字节做准备。
+;rep 前缀会让 movsb 重复执行 ecx 次，也就是完成整个内存块的复制。
+;总结：rep movsb 的作用就是快速地
+	
+;恢复环境
+	pop ecx
+	pop ebp
+	ret
