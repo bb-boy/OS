@@ -270,7 +270,7 @@ kernel_init:
 
 ;---------------------mem_cpy函数---------------------------
 
-memcpy:
+mem_cpy:
 	cld 			  
 	; cld (Clear Direction Flag)：这是清除方向标志位 DF 的指令。在x86架构中，字符串操作指令（比如后面要用的 movsb）的行为受 DF 标志位影响。
 	;当 DF = 0 时（通过 cld 设置），内存地址会自动增加。
@@ -361,7 +361,7 @@ rd_disk_m_32:
 
     mov edx,0x1f0
    .go_on_read:
-        in eax,edx
+        in eax,dx
         mov [ebx],eax
         add ebx,4
         loop .go_on_read
