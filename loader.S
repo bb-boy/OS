@@ -198,15 +198,13 @@ enter_kernel:
 	mov esp, 0xc0000000 + 0x9f000
 	jmp KERNEL_ENTRY_POINT
 
-        setup_page:
-            ; Clear page directory + a span of PTE pages to avoid stray mappings
-            ; Clear 1 MiB starting at PAGE_DIR_TABLE_POS (256 pages: PD + PTEs)
-            mov ecx, 4096*256
-            mov esi, 0
-        .clear_page_dir:
-            mov byte [PAGE_DIR_TABLE_POS + esi], 0
-            inc esi
-            loop .clear_page_dir
+	setup_page:
+		mov ecx, 4096
+		mov esi, 0
+	.clear_page_dir:
+		mov byte [PAGE_DIR_TABLE_POS + esi], 0
+		inc esi
+		loop .clear_page_dir
 
 	.create_pde:
 		mov eax, PAGE_DIR_TABLE_POS
@@ -218,15 +216,14 @@ enter_kernel:
 		sub eax, 0x1000
 		mov [PAGE_DIR_TABLE_POS + 4092], eax
 
-            ; Initialize first page table to identity-map first 4MiB (1024 entries)
-            mov ecx, 1024
-            mov esi, 0
-            mov edx, PG_US_U | PG_RW_W | PG_P
-        .create_pte:
-            mov [ebx+esi*4], edx
-            add edx,4096
-            inc esi
-            loop .create_pte
+		mov ecx, 256
+		mov esi, 0
+		mov edx, PG_US_U | PG_RW_W | PG_P
+	.create_pte:
+		mov [ebx+esi*4], edx
+		add edx,4096
+		inc esi
+		loop .create_pte
 
 		mov eax, PAGE_DIR_TABLE_POS
 		add eax, 0x2000
