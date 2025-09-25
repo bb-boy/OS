@@ -177,7 +177,8 @@ p_mode:                    ; 保护模式下的入口点
 	mov ebx,KERNEL_BIN_BASE_ADDR;
 	mov ecx,200;
 	call rd_disk_m_32;
-
+	mov byte [gs:160], 'L'     ; Load完成
+	mov byte [gs:161], 0x0A
 ;------------------------------------------开启页表-----------------------------
 	call setup_page
 	sgdt [gdt_ptr]
