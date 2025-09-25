@@ -39,7 +39,8 @@ global put_char:
     cmp cl,0xa       ;判断是否是换行符
     jz .is_line_feed
     cmp cl,0x8       ;判断是否是退格符
-    jz .is_backspace
+    jz .is_backspace 
+
     jmp .put_other
 
 .is_backspace:
@@ -95,7 +96,7 @@ global put_char:
     mov ecx,80
 
 .cls:
-    mov word [gs:ebx],0x0720
+    mov word [gs:ebx],0x0720    
     add ebx,2
     loop .cls
     mov bx,1920
