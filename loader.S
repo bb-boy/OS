@@ -195,10 +195,19 @@ p_mode:                    ; 保护模式下的入口点
 	mov byte [gs:160], 'V'
 	jmp SELECTOR_CODE:enter_kernel
 enter_kernel:
+	mov byte [gs:178], 'I'     
+	mov byte [gs:179], 0x0A
+	mov byte [gs:178], 'n'     
+	mov byte [gs:179], 0x0A
+	mov byte [gs:180], 'i'     
+	mov byte [gs:181], 0x0A
+	mov byte [gs:182], 't'     
+	mov byte [gs:183], 0x0A
+	mov byte [gs:184], 'k'    
+	mov byte [gs:185], 0x0A
 	call kernel_init	;初始化内核
 	mov esp, 0xc0000000 + 0x9f000	;设置内核栈
-	mov byte [gs:178], 'I'     ; Init完成
-	mov byte [gs:179], 0x0A
+	
 
 	jmp KERNEL_ENTRY_POINT	;;进入内核
 
