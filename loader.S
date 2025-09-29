@@ -177,8 +177,23 @@ p_mode:                    ; 保护模式下的入口点
 	mov ebx,KERNEL_BIN_BASE_ADDR;
 	mov ecx,200;
 	call rd_disk_m_32;
-	mov byte [gs:168], 'L'     ; Load完成
-	mov byte [gs:169], 0x0A
+	; 验证内核是否正确加载到内存
+	mov eax, [KERNEL_BIN_BASE_ADDR]    ; 读取ELF魔数
+	cmp eax, 0x464C457F               ; 检查是否为ELF文件
+	jne .kernel_error
+
+	; 显示内核验证成功
+	mov byte [gs:176], 'V'            ; Verified
+	mov byte [gs:177], 0x0A
+	jmp .kernel_verified
+
+	.kernel_error:
+    	mov byte [gs:176], 'X'        ; Error
+    	mov byte [gs:177], 0x0C       ; 红色
+    	jmp $                         ; 停机
+
+	.kernel_verified:
+
 ;------------------------------------------开启页表-----------------------------
 	call setup_page
 	sgdt [gdt_ptr]
@@ -367,7 +382,79 @@ rd_disk_m_32:
 
 ;第5步：从0x1f0端口读取数据
     mov eax,edi      ;di存放的要读取的扇区数
-    mov edx,128      ;每次读取一个字
+    mov edx,128      ;每次读取一个字	rd_disk_m_32:
+		mov esi,eax      ; 备份LBA扇区号
+		mov edi,ecx      ; 备份读入的扇区数
+	
+		; ... 前面的端口设置代码保持不变 ...
+	
+		; 第5步：从0x1f0端口读取数据
+		mov eax,edi      ; 取出要读取的扇区数
+		mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
+		mul edx          ; 计算总的读取次数
+		mov ecx,eax      ; ECX = 总读取次数
+	
+		mov edx,0x1f0    ; 数据端口
+	.go_on_read:
+		in eax,dx        ; 读取4字节
+		mov [ebx],eax    ; 写入内存
+		add ebx,4        ; 内存地址+4
+		loop .go_on_read ; 循环直到读完
+		ret		rd_disk_m_32:
+			mov esi,eax      ; 备份LBA扇区号
+			mov edi,ecx      ; 备份读入的扇区数
+		
+			; ... 前面的端口设置代码保持不变 ...
+		
+			; 第5步：从0x1f0端口读取数据
+			mov eax,edi      ; 取出要读取的扇区数
+			mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
+			mul edx          ; 计算总的读取次数
+			mov ecx,eax      ; ECX = 总读取次数
+		
+			mov edx,0x1f0    ; 数据端口
+		.go_on_read:
+			in eax,dx        ; 读取4字节
+			mov [ebx],eax    ; 写入内存
+			add ebx,4        ; 内存地址+4
+			loop .go_on_read ; 循环直到读完
+			ret			rd_disk_m_32:
+				mov esi,eax      ; 备份LBA扇区号
+				mov edi,ecx      ; 备份读入的扇区数
+			
+				; ... 前面的端口设置代码保持不变 ...
+			
+				; 第5步：从0x1f0端口读取数据
+				mov eax,edi      ; 取出要读取的扇区数
+				mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
+				mul edx          ; 计算总的读取次数
+				mov ecx,eax      ; ECX = 总读取次数
+			
+				mov edx,0x1f0    ; 数据端口
+			.go_on_read:
+				in eax,dx        ; 读取4字节
+				mov [ebx],eax    ; 写入内存
+				add ebx,4        ; 内存地址+4
+				loop .go_on_read ; 循环直到读完
+				ret				rd_disk_m_32:
+					mov esi,eax      ; 备份LBA扇区号
+					mov edi,ecx      ; 备份读入的扇区数
+				
+					; ... 前面的端口设置代码保持不变 ...
+				
+					; 第5步：从0x1f0端口读取数据
+					mov eax,edi      ; 取出要读取的扇区数
+					mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
+					mul edx          ; 计算总的读取次数
+					mov ecx,eax      ; ECX = 总读取次数
+				
+					mov edx,0x1f0    ; 数据端口
+				.go_on_read:
+					in eax,dx        ; 读取4字节
+					mov [ebx],eax    ; 写入内存
+					add ebx,4        ; 内存地址+4
+					loop .go_on_read ; 循环直到读完
+					ret
     mul edx          ;会把dx和ax相乘，操作数是16时，结果的高16位在dx中，低16位在ax中
     mov ecx,eax        ;di表示要读取的扇区数，每次读取一个字即两个字节，所以一个扇区读取256次，cx表示loop的次数
 
@@ -380,19 +467,3 @@ rd_disk_m_32:
         loop .go_on_read
     ret
 
-; 验证内核是否正确加载到内存
-mov eax, [KERNEL_BIN_BASE_ADDR]    ; 读取ELF魔数
-cmp eax, 0x464C457F               ; 检查是否为ELF文件
-jne .kernel_error
-
-; 显示内核验证成功
-mov byte [gs:176], 'V'            ; Verified
-mov byte [gs:177], 0x0A
-jmp .kernel_verified
-
-.kernel_error:
-    mov byte [gs:176], 'X'        ; Error
-    mov byte [gs:177], 0x0C       ; 红色
-    jmp $                         ; 停机
-
-.kernel_verified:
