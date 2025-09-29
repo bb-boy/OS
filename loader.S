@@ -195,19 +195,16 @@ p_mode:                    ; 保护模式下的入口点
 	mov byte [gs:160], 'V'
 	jmp SELECTOR_CODE:enter_kernel
 enter_kernel:
-	mov byte [gs:178], 'I'     
-	mov byte [gs:179], 0x0A
-	mov byte [gs:178], 'n'     
-	mov byte [gs:179], 0x0A
-	mov byte [gs:180], 'i'     
-	mov byte [gs:181], 0x0A
-	mov byte [gs:182], 't'     
-	mov byte [gs:183], 0x0A
-	mov byte [gs:184], 'k'    
-	mov byte [gs:185], 0x0A
-	call kernel_init	;初始化内核
-	mov esp, 0xc0000000 + 0x9f000	;设置内核栈
+	mov byte [gs:178], 'E'     ; Enter kernel
+    mov byte [gs:179], 0x0C    
 	
+	call kernel_init	;初始化内核
+	mov byte [gs:180], 'K'     ; Kernel init done
+    mov byte [gs:181], 0x0A    ; 绿色
+
+	mov esp, 0xc0000000 + 0x9f000	;设置内核栈
+	mov byte [gs:182], 'J'     ; Jump to kernel
+    mov byte [gs:183], 0x0E    ; 黄色
 
 	jmp KERNEL_ENTRY_POINT	;;进入内核
 
@@ -382,3 +379,20 @@ rd_disk_m_32:
         add ebx,4
         loop .go_on_read
     ret
+
+; 验证内核是否正确加载到内存
+mov eax, [KERNEL_BIN_BASE_ADDR]    ; 读取ELF魔数
+cmp eax, 0x464C457F               ; 检查是否为ELF文件
+jne .kernel_error
+
+; 显示内核验证成功
+mov byte [gs:176], 'V'            ; Verified
+mov byte [gs:177], 0x0A
+jmp .kernel_verified
+
+.kernel_error:
+    mov byte [gs:176], 'X'        ; Error
+    mov byte [gs:177], 0x0C       ; 红色
+    jmp $                         ; 停机
+
+.kernel_verified:
