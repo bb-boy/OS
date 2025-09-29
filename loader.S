@@ -177,8 +177,8 @@ p_mode:                    ; 保护模式下的入口点
 	mov ebx,KERNEL_BIN_BASE_ADDR;
 	mov ecx,200;
 	call rd_disk_m_32;
-	mov byte [gs:160], 'L'     ; Load完成
-	mov byte [gs:161], 0x0A
+	mov byte [gs:168], 'L'     ; Load完成
+	mov byte [gs:169], 0x0A
 ;------------------------------------------开启页表-----------------------------
 	call setup_page
 	sgdt [gdt_ptr]
@@ -195,9 +195,15 @@ p_mode:                    ; 保护模式下的入口点
 	mov byte [gs:160], 'V'
 	jmp SELECTOR_CODE:enter_kernel
 enter_kernel:
-	call kernel_init
-	mov esp, 0xc0000000 + 0x9f000
-	jmp KERNEL_ENTRY_POINT
+	call kernel_init	;初始化内核
+	mov esp, 0xc0000000 + 0x9f000	;设置内核栈
+	mov byte [gs:178], 'I'     ; Init完成
+	mov byte [gs:179], 0x0A
+
+	jmp KERNEL_ENTRY_POINT	;;进入内核
+
+	
+
 
 	setup_page:
 		mov ecx, 4096
