@@ -1,0 +1,4 @@
+0x900 loader_start
+0x903 gdt_base
+0xe03 loader_message
+0xef7 p_mode
