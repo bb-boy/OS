@@ -125,7 +125,7 @@ Disassembly of section .data:
     10ae:	59                   	pop    %ecx
     10af:	5d                   	pop    %ebp
     10b0:	c3                   	ret    
-    10b1:	89 c6                	mov    %eax,%esi
+    10b1:	89 c6                	mov    %eax,%esi  *保护模式下读盘断点*
     10b3:	89 cf                	mov    %ecx,%edi
     10b5:	ba f2 01 00 00       	mov    $0x1f2,%edx
     10ba:	88 c8                	mov    %cl,%al
@@ -148,7 +148,7 @@ Disassembly of section .data:
     10df:	66 ba f7 01          	mov    $0x1f7,%dx
     10e3:	b0 20                	mov    $0x20,%al
     10e5:	ee                   	out    %al,(%dx)
-    10e6:	90                   	nop
+    10e6:	90                   	nop                    从这里开始等待硬盘就绪       
     10e7:	ec                   	in     (%dx),%al
     10e8:	24 88                	and    $0x88,%al
     10ea:	3c 08                	cmp    $0x8,%al

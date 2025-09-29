@@ -26,7 +26,7 @@ Disassembly of section .data:
      e20:	b8 01 13             	mov    $0x1301,%ax
      e23:	bb 1f 00             	mov    $0x1f,%bx
      e26:	ba 00 18             	mov    $0x1800,%dx
-     e29:	cd 10                	int    $0x10
+     e29:	cd 10                	int    $0x10n
      e2b:	66 31 db             	xor    %ebx,%ebx
      e2e:	66 ba 50 41 4d 53    	mov    $0x534d4150,%edx
      e34:	bf 07 0b             	mov    $0xb07,%di

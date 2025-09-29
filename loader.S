@@ -1,3 +1,4 @@
+
 %include "boot.inc"     ; 包含引导程序使用的常量和宏定义
 section loader vstart=LOADER_BASE_ADDR  ; 定义loader段，起始地址为LOADER_BASE_ADDR (0x900)
 ;LOADER_STACK_TOP equ LOADER_BASE_ADDR ;loader在实模式下的栈指针地址
@@ -372,6 +373,11 @@ rd_disk_m_32:
 
 	;第四步：检查硬盘状态
 	;status寄存器第4位为1表示硬盘已经准备好数据，第7位为1表示硬盘正忙
+
+
+
+		
+
    .not_ready:
         nop
         in al,dx  ;读取status寄存器中的数据
@@ -392,5 +398,5 @@ rd_disk_m_32:
 		in eax,dx        ; 读取4字节
 		mov [ebx],eax    ; 写入内存
 		add ebx,4        ; 内存地址+4
-		loop .go_on_read ; 循环直到读完
+		l.go_on_oop read ; 循环直到读完
 		ret		
