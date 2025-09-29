@@ -382,12 +382,12 @@ rd_disk_m_32:
 
 	;数据已经准备好了，可以读取数据了
 	; 第5步：从0x1f0端口读取数据
-	mov eax,edi      ; 取出要读取的扇区数
-	mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
-	mul edx          ; 计算总的读取次数
-	mov ecx,eax      ; ECX = 总读取次数
+		mov eax,edi      ; 取出要读取的扇区数
+		mov edx,128      ; 512字节/4字节=128次
+		mul edx          ; 计算总的读取次数
+		mov ecx,eax      ; ECX = 总读取次数
 	
-	mov edx,0x1f0    ; 数据端口
+		mov edx,0x1f0    ; 数据端口
 	.go_on_read:
 		in eax,dx        ; 读取4字节
 		mov [ebx],eax    ; 写入内存
