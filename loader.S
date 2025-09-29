@@ -182,8 +182,8 @@ p_mode:                    ; 保护模式下的入口点
 	cmp eax, 0x464C457F               ; 检查是否为ELF文件
 	jne .kernel_error
 
-	; 显示内核验证成功
-	mov byte [gs:176], 'V'            ; Verified
+	; s显示内核验证成功,x表示内核加载错误
+	mov byte [gs:176], 'S'            ; Verified
 	mov byte [gs:177], 0x0A
 	jmp .kernel_verified
 
@@ -380,90 +380,17 @@ rd_disk_m_32:
         jnz .not_ready ;若结果不是0则跳回.not_ready继续轮询
 
 
-;第5步：从0x1f0端口读取数据
-    mov eax,edi      ;di存放的要读取的扇区数
-    mov edx,128      ;每次读取一个字	rd_disk_m_32:
-		mov esi,eax      ; 备份LBA扇区号
-		mov edi,ecx      ; 备份读入的扇区数
+	;数据已经准备好了，可以读取数据了
+	; 第5步：从0x1f0端口读取数据
+	mov eax,edi      ; 取出要读取的扇区数
+	mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
+	mul edx          ; 计算总的读取次数
+	mov ecx,eax      ; ECX = 总读取次数
 	
-		; ... 前面的端口设置代码保持不变 ...
-	
-		; 第5步：从0x1f0端口读取数据
-		mov eax,edi      ; 取出要读取的扇区数
-		mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
-		mul edx          ; 计算总的读取次数
-		mov ecx,eax      ; ECX = 总读取次数
-	
-		mov edx,0x1f0    ; 数据端口
+	mov edx,0x1f0    ; 数据端口
 	.go_on_read:
 		in eax,dx        ; 读取4字节
 		mov [ebx],eax    ; 写入内存
 		add ebx,4        ; 内存地址+4
 		loop .go_on_read ; 循环直到读完
-		ret		rd_disk_m_32:
-			mov esi,eax      ; 备份LBA扇区号
-			mov edi,ecx      ; 备份读入的扇区数
-		
-			; ... 前面的端口设置代码保持不变 ...
-		
-			; 第5步：从0x1f0端口读取数据
-			mov eax,edi      ; 取出要读取的扇区数
-			mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
-			mul edx          ; 计算总的读取次数
-			mov ecx,eax      ; ECX = 总读取次数
-		
-			mov edx,0x1f0    ; 数据端口
-		.go_on_read:
-			in eax,dx        ; 读取4字节
-			mov [ebx],eax    ; 写入内存
-			add ebx,4        ; 内存地址+4
-			loop .go_on_read ; 循环直到读完
-			ret			rd_disk_m_32:
-				mov esi,eax      ; 备份LBA扇区号
-				mov edi,ecx      ; 备份读入的扇区数
-			
-				; ... 前面的端口设置代码保持不变 ...
-			
-				; 第5步：从0x1f0端口读取数据
-				mov eax,edi      ; 取出要读取的扇区数
-				mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
-				mul edx          ; 计算总的读取次数
-				mov ecx,eax      ; ECX = 总读取次数
-			
-				mov edx,0x1f0    ; 数据端口
-			.go_on_read:
-				in eax,dx        ; 读取4字节
-				mov [ebx],eax    ; 写入内存
-				add ebx,4        ; 内存地址+4
-				loop .go_on_read ; 循环直到读完
-				ret				rd_disk_m_32:
-					mov esi,eax      ; 备份LBA扇区号
-					mov edi,ecx      ; 备份读入的扇区数
-				
-					; ... 前面的端口设置代码保持不变 ...
-				
-					; 第5步：从0x1f0端口读取数据
-					mov eax,edi      ; 取出要读取的扇区数
-					mov edx,128      ; ✅ 这个数值是正确的：512字节/4字节=128次
-					mul edx          ; 计算总的读取次数
-					mov ecx,eax      ; ECX = 总读取次数
-				
-					mov edx,0x1f0    ; 数据端口
-				.go_on_read:
-					in eax,dx        ; 读取4字节
-					mov [ebx],eax    ; 写入内存
-					add ebx,4        ; 内存地址+4
-					loop .go_on_read ; 循环直到读完
-					ret
-    mul edx          ;会把dx和ax相乘，操作数是16时，结果的高16位在dx中，低16位在ax中
-    mov ecx,eax        ;di表示要读取的扇区数，每次读取一个字即两个字节，所以一个扇区读取256次，cx表示loop的次数
-
-
-    mov edx,0x1f0
-   .go_on_read:
-        in eax,dx
-        mov [ebx],eax
-        add ebx,4
-        loop .go_on_read
-    ret
-
+		ret		
