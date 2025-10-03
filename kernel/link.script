@@ -1,0 +1,7 @@
+ENTRY(main)
+
+SECTIONS
+{
+    . = 0xc0001500;
+    /DISCARD/ : { *(.note.gnu.property) }
+}
