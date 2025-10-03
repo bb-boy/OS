@@ -398,5 +398,5 @@ rd_disk_m_32:
 		in eax,dx        ; 读取4字节
 		mov [ebx],eax    ; 写入内存
 		add ebx,4        ; 内存地址+4
-		l.go_on_oop read ; 循环直到读完
+		loop .go_on_read ; 循环直到读完
 		ret		
