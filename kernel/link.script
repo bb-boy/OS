@@ -2,6 +2,6 @@ ENTRY(main)
 
 SECTIONS
 {
-    . = 0xc0001500;
+    . = 0xc0002500;
     /DISCARD/ : { *(.note.gnu.property) }
 }

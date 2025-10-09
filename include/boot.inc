@@ -4,7 +4,7 @@ LOADER_START_SECTOR equ 0x2     ;loader在硬盘中的扇区号,LBA方式从0开
 PAGE_DIR_TABLE_POS equ 0x100000 ;页目录表的位置，1MB
 KERNEL_START_SECTOR equ 0x9     ;内核文件在文件的存储扇区
 KERNEL_BIN_BASE_ADDR equ 0x70000    ;内核文件在内存中的缓冲区
-KERNEL_ENTRY_POINT equ 0xc0001500   ;内核程序入口地址
+KERNEL_ENTRY_POINT equ 0xc0002500   ;内核程序入口地址
 
 
 ;----------------gdt描述符属性------------------------
