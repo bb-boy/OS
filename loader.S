@@ -42,19 +42,14 @@ SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0 ; 视频段选择子，索引3，
  
 
 
-loadermsg db 'i am loader in real.'  ; 定义字符串，用于显示在屏幕上
+
 
 ;------------------------------------------------------------------------------------------------------------------------------
 
 
 loader_start:           ; loader开始执行的入口点
 	mov sp, stack_top      ; 设置堆栈指针为栈顶地址
-	mov cx, 20             ; 设置CX为20，用于显示字符串的长度
-	mov bp, loadermsg      ; 将字符串地址加载到BP寄存器
-	mov ax, 0x1301         ; 设置AH=0x13(文本模式)，AL=0x01(光标定位)
-	mov bx, 0x001f         ; 设置BH=0(页面号)，BL=0x1f(白色文字，黑色背景)
-	mov dx, 0x1800         ; 设置DH=0x18(行)，DL=0x0(列)
-	int 0x10               ; 调用BIOS中断显示字符串
+	
 
 
 	xor ebx, ebx               ; 第一次调用，ebx必须为0（后续BIOS会返回新的ebx做链表迭代）
@@ -184,7 +179,7 @@ p_mode:                    ; 保护模式下的入口点
 	jne .kernel_error
 
 	; s显示内核验证成功,x表示内核加载错误
-	mov byte [gs:176], 'S'            ; Verified
+	mov byte [gs:176], 'K'            ; Verified
 	mov byte [gs:177], 0x0A
 	jmp .kernel_verified
 
