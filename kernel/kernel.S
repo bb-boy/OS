@@ -7,6 +7,7 @@ extern put_str  ;;;;声明外部函数put_str
 
 section .data
 intr_str db "interrupt occurred!!",0xa,0    ; 定义一个字符串，内容是 "interrupt occurred!!"，后面跟着换行符（0xA）和一个字节 a
+intr_count dd 0     ; 中断计数器
 
 global intr_entry_table
 intr_entry_table:
@@ -16,13 +17,20 @@ section .text
 intr%1entry:
 
     %2
+    
+    ; 只打印第一次中断，避免屏幕刷屏
+    inc dword [intr_count]
+    cmp dword [intr_count], 1
+    jne .skip_print
+    
     push intr_str
     call put_str
     add esp,4
-
+    
+.skip_print:
     mov al,0x20
-    out 0xa0,al   ;向主片发送中断结束信号
-    out 0x20,al   ;向从片发送中断结束信号
+    out 0xa0,al   ;向从片发送中断结束信号
+    out 0x20,al   ;向主片发送中断结束信号
 
     add esp,4
     iret
