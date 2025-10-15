@@ -47,16 +47,16 @@ VECTOR 0x04,ZERO          ;4#OF
 VECTOR 0x05,ZERO          ;5#BR
 VECTOR 0x06,ZERO          ;6#UD
 VECTOR 0x07,ZERO          ;7#NM
-VECTOR 0x08,ZERO
+VECTOR 0x08,ERROR_CODE
 VECTOR 0x09,ZERO          ;9#Coprocessor Segment Overrun
-VECTOR 0x0A,ZERO
-VECTOR 0x0B,ZERO
-VECTOR 0x0C,ZERO        
-VECTOR 0x0D,ZERO          ;13#GP
-VECTOR 0x0E,ZERO          ;14#PF
+VECTOR 0x0A,ERROR_CODE
+VECTOR 0x0B,ERROR_CODE
+VECTOR 0x0C,ERROR_CODE     
+VECTOR 0x0D,ERROR_CODE       ;13#GP
+VECTOR 0x0E,ERROR_CODE        ;14#PF
 VECTOR 0x0F,ZERO
 VECTOR 0x10,ZERO          ;16#MF
-VECTOR 0x11,ZERO          ;17#AC
+VECTOR 0x11,ERROR_CODE        ;17#AC
 VECTOR 0x12,ZERO          ;18#MC
 VECTOR 0x13,ZERO          ;19#XM
 VECTOR 0x14,ZERO          ;20#VE
@@ -72,3 +72,22 @@ VECTOR 0x1D,ZERO
 VECTOR 0x1E,ERROR_CODE    ;30#SX
 VECTOR 0x1F,ZERO
 VECTOR 0x20,ZERO          ;32#IRQ0
+
+
+/*当异常触发时（比如除零 #DE）：
+
+CPU 根据异常类型选定向量号 n（0..31，架构固定分配）。
+读取 IDTR（你用 lidt 装载的 IDT 基址与界限）。
+计算目标门描述符地址：IDT.base + n*8（32 位下每项 8 字节）。
+取出门描述符，做合法性检查：
+类型必须是中断门(0xE)或陷阱门(0xF)，P 位为 1，段选择子指向可执行代码段等；
+异常是硬件产生，一般不做 DPL 限制（软件 int 指令才校验 DPL）。
+若检查失败，可能引发 #NP/#GP；若在处理已有异常时再出错可能升级为 #DF，最后可能三重故障重启。
+构造栈帧并切换到目标：
+若 CPL 变化（环级切换），先压入旧 SS, ESP；
+压入 EFLAGS, CS, EIP；
+对“带错误码”的异常，CPU 自动再压入 error code；
+中断门会清 IF（屏蔽后续外部中断），陷阱门不清 IF；
+跳到门描述符里的目标 CS:EIP 执行你的入口（比如 intr0x0Eentry）。
+你的入口处理后用 iret 返回，CPU 弹出相应栈帧并恢复现场*/
+
