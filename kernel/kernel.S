@@ -28,26 +28,12 @@ intr%1entry:
 %if %1 == 0x20
     inc dword [intr_count]          ; 递增计数器
     cmp dword [intr_count], 1       ; 检查是否是第一次
-    jg .skip_irq0                   ; 如果大于1，跳过处理
+    jg .send_eoi                    ; 如果大于1，跳过处理
     
     push intr_str
     call put_str
     add esp,4
-    
-    ; 第一次中断后，屏蔽 IRQ0（设置 bit 0 为 1）
-    in al, 0x21                     ; 读取主片的中断屏蔽寄存器
-    or al, 0x01                     ; 设置 bit 0 为 1，屏蔽 IRQ0
-    out 0x21, al                    ; 写回屏蔽寄存器
-    
-    jmp .send_eoi
-    
-.skip_irq0:
-    ; 如果是第二次及以后，直接发送 EOI 并返回
-    jmp .send_eoi
-%else
-    push intr_str
-    call put_str
-    add esp,4
+
 %endif
 
 .send_eoi:
@@ -58,8 +44,6 @@ intr%1entry:
     push %1
     call [idt_table + %1*4]
     jmp intr_exit
-
-    
 
 section .data
     dd intr%1entry
