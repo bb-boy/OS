@@ -1,12 +1,14 @@
 [bits 32]
 %define ERROR_CODE nop
 %define ZERO push 0
+
 extern idt_table
 
 extern put_str  ;;;;声明外部函数put_str
 
 section .data
 intr_str db "interrupt occurred!!",0xa,0    ; 定义一个字符串，内容是 "interrupt occurred!!"，后面跟着换行符（0xA）和一个字节 a
+intr_count dd 0                              ; 中断计数器，用于只执行一次
 
 global intr_entry_table
 intr_entry_table:
@@ -22,13 +24,33 @@ intr%1entry:
     push gs
     pushad
 
-
+    ; 检查是否是 IRQ0 (0x20)，如果是则检查计数器
+%if %1 == 0x20
+    inc dword [intr_count]          ; 递增计数器
+    cmp dword [intr_count], 1       ; 检查是否是第一次
+    jg .skip_irq0                   ; 如果大于1，跳过处理
     
     push intr_str
     call put_str
     add esp,4
     
+    ; 第一次中断后，屏蔽 IRQ0（设置 bit 0 为 1）
+    in al, 0x21                     ; 读取主片的中断屏蔽寄存器
+    or al, 0x01                     ; 设置 bit 0 为 1，屏蔽 IRQ0
+    out 0x21, al                    ; 写回屏蔽寄存器
+    
+    jmp .send_eoi
+    
+.skip_irq0:
+    ; 如果是第二次及以后，直接发送 EOI 并返回
+    jmp .send_eoi
+%else
+    push intr_str
+    call put_str
+    add esp,4
+%endif
 
+.send_eoi:
     mov al,0x20
     out 0xa0,al   ;向从片发送中断结束信号
     out 0x20,al   ;向主片发送中断结束信号
