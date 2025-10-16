@@ -25,7 +25,7 @@ intr%1entry:
     pushad
 
     ; 检查是否是 IRQ0 (0x20)，如果是则检查计数器
-%if %1 == 0x20
+
     inc dword [intr_count]          ; 递增计数器
     cmp dword [intr_count], 1       ; 检查是否是第一次
     jg .send_eoi                    ; 如果大于1，跳过处理
@@ -34,7 +34,7 @@ intr%1entry:
     call put_str
     add esp,4
 
-%endif
+
 
 .send_eoi:
     mov al,0x20
