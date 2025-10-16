@@ -1,14 +1,12 @@
 [bits 32]
 %define ERROR_CODE nop
 %define ZERO push 0
-
 extern idt_table
 
 extern put_str  ;;;;声明外部函数put_str
 
 section .data
 intr_str db "interrupt occurred!!",0xa,0    ; 定义一个字符串，内容是 "interrupt occurred!!"，后面跟着换行符（0xA）和一个字节 a
-                         
 
 global intr_entry_table
 intr_entry_table:
@@ -24,17 +22,13 @@ intr%1entry:
     push gs
     pushad
 
-    ; 检查是否是 IRQ0 (0x20)，如果是则检查计数器
 
-    
     
     push intr_str
     call put_str
     add esp,4
+    
 
-
-
-.send_eoi:
     mov al,0x20
     out 0xa0,al   ;向从片发送中断结束信号
     out 0x20,al   ;向主片发送中断结束信号
@@ -42,6 +36,8 @@ intr%1entry:
     push %1
     call [idt_table + %1*4]
     jmp intr_exit
+
+    
 
 section .data
     dd intr%1entry
