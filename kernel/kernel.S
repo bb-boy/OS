@@ -26,9 +26,7 @@ intr%1entry:
 
     ; 检查是否是 IRQ0 (0x20)，如果是则检查计数器
 
-    inc dword [intr_count]          ; 递增计数器
-    cmp dword [intr_count], 1       ; 检查是否是第一次
-    jg .send_eoi                    ; 如果大于1，跳过处理
+    
     
     push intr_str
     call put_str
