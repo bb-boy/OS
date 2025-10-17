@@ -7,10 +7,12 @@ extern put_str  ;;;;声明外部函数put_str
 
 section .data
 intr_str db "interrupt occurred!!",0xa,0    ; 定义一个字符串，内容是 "interrupt occurred!!"，后面跟着换行符（0xA）和一个字节 a
-intr_count dd 0
 
 global intr_entry_table
 intr_entry_table:
+
+section .bss
+intr_count resd 1    ; 在 .bss 段单独分配 intr_count，避免被覆盖
 
 %macro VECTOR 2
 section .text
