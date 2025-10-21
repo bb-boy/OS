@@ -21,7 +21,7 @@ static void frequency_set(uint8_t counter_port, uint8_t counter_no, uint8_t rwl,
     outb(counter_port, (uint8_t)((counter_value >> 8) & 0xFF)); // High byte
 }
 
-void timer_init() {
+void timer_init(void) {
     put_str("timer_init start\n");
     frequency_set(COUNTER0_PORT, COUNTER0_NO, READ_WRITE_LATCH, COUNTER_MODE, COUNTER0_VALUE);
     put_str("timer_init done\n");

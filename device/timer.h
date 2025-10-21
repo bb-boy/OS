@@ -3,6 +3,6 @@
 
 #include "stdint.h"
 
-void timer_init();
+void timer_init(void);
 
 #endif // __DEVICE_TIMER_H

@@ -11,8 +11,7 @@ intr_str db "interrupt occurred!!",0xa,0    ; 定义一个字符串，内容是 
 global intr_entry_table
 intr_entry_table:
 
-section .bss
-intr_count resd 1    ; 在 .bss 段单独分配 intr_count，避免被覆盖
+
 
 %macro VECTOR 2
 section .text
@@ -25,16 +24,11 @@ intr%1entry:
     push gs
     pushad
 
-    ; 只执行一次中断处理
-    inc dword [intr_count]
-    cmp dword [intr_count], 1
-    jg .skip_print
-
     push intr_str
     call put_str
     add esp,4
 
-.skip_print:
+
     mov al,0x20
     out 0xa0,al   ;向从片发送中断结束信号
     out 0x20,al   ;向主片发送中断结束信号
